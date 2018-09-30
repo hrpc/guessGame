@@ -1,5 +1,6 @@
 import Router from 'koa-router'
 import * as Controller from '../controller/main'
+import io from '../main.js'
 
 const router = new Router()
 
@@ -14,12 +15,11 @@ router.post('/createRoom', async (ctx) => {
   let obj = ctx.request.body
   try{
   	  const res = await Controller.addRoom(obj)
-  	  console.log('chegng')
     result.data = '创建成功'
+    io.sockets.emit('creatRoom');
     ctx.body = result
   }catch(e){
-  	 //TODO handle the exception
-    	console.log('失败')
+  	 // TODO handle the exception
     result.code = 500
     result.data = '服务器错误'
     ctx.body = result
@@ -31,14 +31,12 @@ router.post('/findAll', async (ctx) => {
     data: ''
   }
   try{
-  	 let res =  Controller.findAllRooms()
+  	 let res =  await Controller.findAllRooms()
   	 result.code = 0
     if (!res) {
       res = []
     }
-    console.log('findAll', res)
     result.data = res
-    
   }catch(e){
   	//TODO handle the exception
   	  result.code = 500

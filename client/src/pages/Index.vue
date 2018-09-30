@@ -3,7 +3,7 @@
     <h1 class="header">大厅</h1>
     <p class="">在线用户数：{{users.length}}</p>
     <div class="set-room">
-    	 <button class="create" @click="_createRoom">创建房间</button>
+      <button class="create" @click="_createRoom">创建房间</button>
     </div>
     <div class="create-zone" v-if="showCreateRoom">
       <div class="c-wrapper">
@@ -13,20 +13,26 @@
           <input id="roonname" type="text" v-model="cName"/>
         </div>
         <button class="confirm-btn" @click="confirm">确认</button>
+        <button class="confirm-btn" @click="close">关闭</button>
       </div>
     </div>
     <div class="rooms">
-      <div class="room" v-for="item in 10">
+      <div class="room" v-for="n in 10" ref="ref" >
+         <div v-if="rooms.length > 0 && rooms.length >= n" class="inner" @click="enter">
+           <p>{{rooms[n-1].title}}</p>
+           <p>房主：{{rooms[n-1].owner}}</p>
+           <p>玩家人数：{{rooms[n-1].player.length}}</p>
+           <p>状态：{{computedStatus(rooms[n-1].status)}}</p>
+         </div>
       </div>
-      <div class="placeholder"></div>
-      <div class="placeholder"></div>
+      <div class="placeholder" v-for="n in addNum"></div>
     </div>
   </div>
 </template>
 
 <script>
 import socket from 'socket.io-client'
-import { createRoom, findAllRooms} from '@/assets/api/index'
+import { createRoom, findAllRooms } from '@/assets/api/index'
 const io = socket('http://172.20.33.10:3001')
 export default {
   name: 'index',
@@ -35,10 +41,20 @@ export default {
       msg: '',
       users: [],
       cName: '',
-      showCreateRoom: false
+      showCreateRoom: false,
+      rooms: [],
+      addNum: 0
     }
   },
+  computed: {
+  },
   methods: {
+    computedStatus(status) {
+      return status === 0 ? '准备中' : '游戏中'
+    },
+    enter () {
+      this.$router.push('room')
+    },
     checkLogin () {
       if (!this.$cookie.get('token')) {
         this.$router.push('login')
@@ -55,20 +71,48 @@ export default {
         console.log('rooms', data)
       })
     },
+    close () {
+      this.showCreateRoom = false
+    },
     _createRoom () {
       this.showCreateRoom = true
     },
-    _findAllRooms() {
-      findAllRooms(res => {
-        console.log('res', res)
+    addPlaceHolder () {
+      let roomsRef = this.$refs.ref
+      let cutIndex = 0
+      for(let i = 0; i<roomsRef.length; i++){
+        if (roomsRef[i + 1] && roomsRef[i].offsetTop !== roomsRef[i + 1].offsetTop) {
+          cutIndex = i
+          break;
+        }
+      }
+      let reverNum = roomsRef.length % (cutIndex + 1) || cutIndex + 1
+      this.addNum = cutIndex + 1 - reverNum
+      console.log('this.addNum', cutIndex + 1)
+    },
+    _findAllRooms () {
+      findAllRooms().then(res => {
+        this.rooms = res.data.data
+        this.$nextTick(() => {
+          this.addPlaceHolder()
+        })
       })
     },
     confirm () {
+      // 判断当前用户是否已经创建过房间
+      let hasOneRoom = this.rooms.some(item => {
+        return item.owner === this.$cookie.get('token')
+      })
+      if (hasOneRoom) {
+        alert('您已经创建过房间了，不能重复创建，爱你哟。')
+        return
+      }
+      
       let serverData = {
         title: this.cName,
         owner: this.$cookie.get('token'),
         status: 0,
-        player:[this.$cookie.get('token')]
+        player: [this.$cookie.get('token')]
       }
       createRoom(serverData)
       this.showCreateRoom = false
@@ -80,8 +124,10 @@ export default {
     this._findAllRooms()
     io.on('connect', () => {
     })
+    io.on('creatRoom', () => {
+      this._findAllRooms()
+    })
     io.on('online', data => {
-      console.log('io.on', data)
       this.users = data.users
     })
   }
@@ -104,6 +150,9 @@ export default {
   height: 200px;
   background-color: #eee;
   margin-bottom: 20px;
+  .inner {
+    cursor: pointer;
+  }
 }
 .placeholder{
   flex: 0 1 250px;
@@ -127,10 +176,10 @@ export default {
   animation: slide 0.5s ease;
 }
 @keyframes slide{
-	from{
+	from {
 	  transform: translateY(-150%);
 	}
-	to{
+	to {
 	  transform: translateY(0);
 	}
 }

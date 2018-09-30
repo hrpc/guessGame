@@ -41,24 +41,26 @@ io.on('connection', socket => {
       users.push(data.user)
     }
     io.sockets.emit('online', {users: users, user: data.user});
-    let rooms = [{
-      id: 'R20180929',
-      owner: data.user,
-      player: [
-        {
-          name: 'zhangsan'
-        },
-        {
-          name: 'wangwu'
-        }
-      ],
-      // 0-准备中，1-游戏中
-      status: 0
-    }]
-    socket.emit('rooms', rooms)
+//  let rooms = [{
+//    id: 'R20180929',
+//    owner: data.user,
+//    player: [
+//      {
+//        name: 'zhangsan'
+//      },
+//      {
+//        name: 'wangwu'
+//      }
+//    ],
+//    // 0-准备中，1-游戏中
+//    status: 0
+//  }]
+//  socket.emit('rooms', rooms)
   })
 })
 
 server.listen(3001, () => {
   console.log(`listen 3001 port`)
 })
+
+export default io
